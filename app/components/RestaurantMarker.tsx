@@ -64,13 +64,13 @@ export default function RestaurantMarker({ map, restaurant, isActive, onClick }:
   const markerElRef = useRef<HTMLDivElement | null>(null);
   const popupElRef = useRef<HTMLDivElement | null>(null);
 
+  // Create container nodes immediately on mount
+  if (!markerElRef.current) markerElRef.current = document.createElement('div');
+  if (!popupElRef.current) popupElRef.current = document.createElement('div');
+
   // Create marker and popup instances
   useEffect(() => {
-    // Create container nodes if they don't exist
-    if (!markerElRef.current) markerElRef.current = document.createElement('div');
-    if (!popupElRef.current) popupElRef.current = document.createElement('div');
-
-    console.log('Creating marker for restaurant:', restaurant.name, 'at', restaurant.location);
+    if (!markerElRef.current) return;
 
     // Marker
     markerRef.current = new mapboxgl.Marker(markerElRef.current)
@@ -110,7 +110,9 @@ export default function RestaurantMarker({ map, restaurant, isActive, onClick }:
     }
   }, [isActive, map, restaurant.location.lng, restaurant.location.lat]);
 
-  if (!markerElRef.current || !popupElRef.current) return null;
+  if (!markerElRef.current || !popupElRef.current) {
+    return null;
+  }
 
   return (
     <>

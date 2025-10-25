@@ -8,15 +8,7 @@ import PromptInput from './components/PromptInput'
 import LocationDisplay from './components/LocationDisplay'
 
 export default function Home() {
-  // Temporarily hardcode location for testing
-  const [userLocation, setUserLocation] = useState<LocationData | null>({
-    latitude: 37.8029,
-    longitude: -122.4481,
-    source: 'default',
-    city: 'San Francisco',
-    region: 'CA',
-    country: 'United States'
-  });
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
 
   const handlePromptSubmit = (prompt: string) => {
     console.log('User prompt:', prompt)
