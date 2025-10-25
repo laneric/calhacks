@@ -186,26 +186,15 @@ export default function RestaurantCardDeck({
   );
 
   return (
-    <>
-      {/* Transparent overlay to capture map taps */}
-      <div 
-        className="fixed inset-0 z-20"
-        onClick={handleClose}
-        style={{ 
-          background: 'transparent',
-          pointerEvents: isVisible ? 'auto' : 'none'
-        }}
-      />
-      
-      <div 
-        className={`fixed bottom-32 left-1/2 -translate-x-1/2 w-80 max-w-[calc(100vw-60px)] z-30 transition-all duration-100 ease-in-out ${
-          isClosing ? 'opacity-0 translate-y-12' : 'opacity-100 translate-y-0'
-        }`}
-        style={{
-          transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
-        <div className="relative">
+    <div 
+      className={`fixed bottom-32 left-1/2 -translate-x-1/2 w-80 max-w-[calc(100vw-60px)] z-30 transition-all duration-100 ease-in-out ${
+        isClosing ? 'opacity-0 translate-y-12' : 'opacity-100 translate-y-0'
+      }`}
+      style={{
+        transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      <div className="relative">
 
         <div 
           ref={carouselRef}
@@ -213,7 +202,6 @@ export default function RestaurantCardDeck({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onClick={(e) => e.stopPropagation()}
         >
           {restaurants.map((restaurant, index) => (
             <RestaurantCard
@@ -225,10 +213,7 @@ export default function RestaurantCardDeck({
         </div>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goToPrevious();
-          }}
+          onClick={goToPrevious}
           disabled={currentIndex === 0 || isTransitioning}
           className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 z-40 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -236,10 +221,7 @@ export default function RestaurantCardDeck({
         </button>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goToNext();
-          }}
+          onClick={goToNext}
           disabled={currentIndex === restaurants.length - 1 || isTransitioning}
           className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 z-40 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -251,10 +233,7 @@ export default function RestaurantCardDeck({
             {restaurants.map((_, index) => (
               <button
                 key={index}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToIndex(index);
-                }}
+                onClick={() => goToIndex(index)}
                 className={`w-2 h-2 rounded-full transition-all duration-200 ${
                   index === currentIndex 
                     ? 'bg-white' 
@@ -265,8 +244,7 @@ export default function RestaurantCardDeck({
             ))}
           </div>
         )}
-        </div>
       </div>
-    </>
+    </div>
   );
 }

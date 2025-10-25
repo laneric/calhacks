@@ -112,6 +112,10 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
       return;
     }
 
+    let touchStartTime = 0;
+    let touchStartPos = { x: 0, y: 0 };
+    let isDragging = false;
+
     const handleMapClick = (e: any) => {
       // Check if clicking on map canvas or container
       const canvas = m.getCanvas();
@@ -143,33 +147,72 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
         }
       }
     };
+
+    const handleTouchStart = (e: any) => {
+      touchStartTime = Date.now();
+      if (e.touches && e.touches[0]) {
+        touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      isDragging = false;
+    };
+
+    const handleTouchMove = (e: any) => {
+      if (e.touches && e.touches[0]) {
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartPos.x);
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartPos.y);
+        if (deltaX > 10 || deltaY > 10) {
+          isDragging = true;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: any) => {
+      const touchDuration = Date.now() - touchStartTime;
+      const isQuickTap = touchDuration < 300 && !isDragging;
+      
+      if (isQuickTap && isDeckActive) {
+        // Quick tap on map when deck is active - close the deck
+        onDeckClose?.();
+      }
+    };
     
-    // Listen to multiple event types to handle both mouse and touch
+    // Listen to mouse clicks for desktop
     m.on('click', handleMapClick);
-    m.on('touchstart', handleMapClick);
-    m.on('mousedown', handleMapClick);
+    
+    // Listen to touch events for mobile with proper tap detection
+    m.on('touchstart', handleTouchStart);
+    m.on('touchmove', handleTouchMove);
+    m.on('touchend', handleTouchEnd);
     
     // Also listen to the container for additional coverage
     container.addEventListener('click', handleMapClick);
-    container.addEventListener('touchstart', handleMapClick);
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchmove', handleTouchMove);
+    container.addEventListener('touchend', handleTouchEnd);
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setActiveRestaurantId(null);
         onRestaurantDeselect?.();
+        if (isDeckActive) {
+          onDeckClose?.();
+        }
       }
     };
     window.addEventListener('keydown', onKey);
 
     return () => {
       m.off('click', handleMapClick);
-      m.off('touchstart', handleMapClick);
-      m.off('mousedown', handleMapClick);
+      m.off('touchstart', handleTouchStart);
+      m.off('touchmove', handleTouchMove);
+      m.off('touchend', handleTouchEnd);
       container.removeEventListener('click', handleMapClick);
-      container.removeEventListener('touchstart', handleMapClick);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', onKey);
     };
-  }, [isMapReady]);
+  }, [isMapReady, isDeckActive, onDeckClose]);
 
   // Center on user and show a simple user-location marker
   useEffect(() => {
