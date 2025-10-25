@@ -26,6 +26,7 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     const token =
       process.env.NEXT_PUBLIC_MAPBOX_TOKEN ??
       'pk.eyJ1IjoiZXJpY2xhbm1hcHMiLCJhIjoiY21oNXJwYmd1MDA2MzJscTNkdWZqb3AzaSJ9.dbB8rrHS-wjAf-yEX7H1Ig';
+    console.log('Using Mapbox token:', token ? 'Token found' : 'No token');
     if (!token) {
       console.error('Mapbox token is missing');
       return;
@@ -47,6 +48,7 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     mapRef.current = map;
 
     map.on('load', () => {
+      console.log('Map loaded successfully');
       setIsMapReady(true);
       onMapLoad?.(map);
     });
@@ -90,8 +92,14 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
       .setLngLat(center)
       .addTo(map);
 
+    // Add a test marker to verify markers work
+    const testMarker = new mapboxgl.Marker({ color: '#ff0000', scale: 1.5 })
+      .setLngLat([userLocation.longitude + 0.001, userLocation.latitude + 0.001])
+      .addTo(map);
+
     return () => {
       userMarker.remove();
+      testMarker.remove();
     };
   }, [userLocation, isMapReady]);
 
@@ -99,9 +107,11 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
   useEffect(() => {
     const fetchRestaurants = async (lat: number, lng: number, radius = 5000) => {
       try {
+        console.log('Fetching restaurants for:', lat, lng);
         const res = await fetch(`/api/restaurants?lat=${lat}&lng=${lng}&radius=${radius}&limit=20`);
         if (!res.ok) throw new Error(`Failed to fetch restaurants: ${res.status}`);
         const data: RestaurantResponse = await res.json();
+        console.log('Fetched restaurants:', data.restaurants.length, data.restaurants);
         setRestaurants(data.restaurants);
       } catch (err) {
         console.error('Error fetching restaurants:', err);
@@ -119,8 +129,14 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     if (!restaurants.some((r) => r.id === activeRestaurantId)) setActiveRestaurantId(null);
   }, [restaurants, activeRestaurantId]);
 
+  console.log('Map render - isMapReady:', isMapReady, 'restaurants:', restaurants.length, 'mapRef:', !!mapRef.current);
+
   return (
-    <div ref={mapContainer} className="map-container">
+    <div 
+      ref={mapContainer} 
+      className="map-container"
+      style={{ width: '100%', height: '100vh' }}
+    >
       {isMapReady &&
         mapRef.current &&
         restaurants.map((r) => (
