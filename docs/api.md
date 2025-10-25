@@ -54,10 +54,11 @@ find restaurants within a radius of given coordinates.
 - `longitude` or `lng` (float, required): longitude of the location
 - `distance` (float, optional): radius in miles (default: 3.1)
 - `radius` (float, optional): radius in meters (converted to miles internally)
+- `max_num` (int, optional): maximum number of restaurants to return (default: 50, min: 1)
 
 **example request**:
 ```bash
-curl "http://localhost:5001/restaurants?latitude=37.7749&longitude=-122.4194&distance=5"
+curl "http://localhost:5001/restaurants?latitude=37.7749&longitude=-122.4194&distance=5&max_num=50"
 ```
 
 **success response** (200):
@@ -80,9 +81,11 @@ curl "http://localhost:5001/restaurants?latitude=37.7749&longitude=-122.4194&dis
   "query": {
     "lat": 37.7749,
     "lng": -122.4194,
-    "radius": 8046
+    "radius": 8046,
+    "max_num": 50
   },
-  "total": 15
+  "total": 15,
+  "total_found": 127
 }
 ```
 
@@ -98,6 +101,8 @@ curl "http://localhost:5001/restaurants?latitude=37.7749&longitude=-122.4194&dis
 - restaurants are sorted by distance (nearest first)
 - cuisine is returned as array (can be empty for unknown)
 - distances are in meters for frontend compatibility
+- `max_num` limits results to top N closest restaurants
+- `total` shows number of restaurants returned, `total_found` shows total in database
 
 ---
 
@@ -582,8 +587,8 @@ common errors:
 - reduce api costs and improve response times
 
 ### pagination
-- add pagination for large result sets
-- limit parameter for `/restaurants` endpoint
+- add offset-based pagination for `/restaurants` endpoint
+- allow paging through large result sets beyond `max_num`
 
 ### filtering
 - cuisine type filtering
@@ -620,3 +625,6 @@ python-dotenv>=1.0.0
 - **v1.2**: streaming support
   - `/restaurants/research/stream` endpoint
   - server-sent events for progressive research results
+- **v1.3**: result limiting
+  - added `max_num` parameter to `/restaurants` endpoint
+  - limit results to top N closest restaurants (default: 50)

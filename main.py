@@ -41,6 +41,7 @@ def get_restaurants():
         latitude (float): required - latitude of the location
         longitude (float): required - longitude of the location
         distance (float): optional - radius in miles (default: 3.1)
+        max_num (int): optional - maximum number of restaurants to return (default: 50)
 
     returns:
         json response with restaurant data in frontend-compatible format
@@ -63,6 +64,11 @@ def get_restaurants():
         elif not distance:
             distance = 3.1  # Default ~5km in miles
 
+        # Get max_num parameter (maximum restaurants to return)
+        max_num = request.args.get('max_num', type=int, default=50)
+        if max_num < 1:
+            max_num = 1
+
         # Validate required parameters
         if latitude is None:
             return jsonify({
@@ -83,9 +89,9 @@ def get_restaurants():
         if result['status'] == 'error':
             return jsonify(result), 400
 
-        # Transform data to match frontend types
+        # Transform data to match frontend types (limit to top max_num)
         transformed_restaurants = []
-        for restaurant in result['restaurants']:
+        for restaurant in result['restaurants'][:max_num]:
             transformed_restaurants.append({
                 'id': str(uuid.uuid4()),  # Generate unique ID
                 'name': restaurant['name'],
@@ -105,9 +111,11 @@ def get_restaurants():
             'query': {
                 'lat': latitude,
                 'lng': longitude,
-                'radius': int(distance * 1609.34)  # Convert back to meters for response
+                'radius': int(distance * 1609.34),  # Convert back to meters for response
+                'max_num': max_num
             },
-            'total': len(transformed_restaurants)
+            'total': len(transformed_restaurants),
+            'total_found': result['count']
         }
 
         return jsonify(response), 200
