@@ -30,24 +30,27 @@ export default function Home() {
     }
 
     try {
-      // Fetch restaurants from the Flask API
+      // Fetch only 10 random restaurants from the Flask API
       const flaskUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5001';
-      const response = await fetch(`${flaskUrl}/restaurants?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=5000`);
+      const response = await fetch(`${flaskUrl}/restaurants?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=5000&max_num=10`);
       if (!response.ok) throw new Error(`Failed to fetch restaurants: ${response.status}`);
       
       const data = await response.json();
       const restaurants = data.restaurants;
       
       if (restaurants.length > 0) {
-        // Set the entire deck of restaurants
-        setRestaurantDeck(restaurants);
+        // Shuffle the restaurants array to ensure randomness
+        const shuffledRestaurants = [...restaurants].sort(() => Math.random() - 0.5);
+        
+        // Set the deck of 10 random restaurants
+        setRestaurantDeck(shuffledRestaurants);
         // Select the first restaurant to show on map
-        setSelectedRestaurant(restaurants[0]);
+        setSelectedRestaurant(shuffledRestaurants[0]);
       } else {
         console.log('No restaurants found nearby');
       }
     } catch (error) {
-      console.error('Error fetching random restaurant:', error);
+      console.error('Error fetching random restaurants:', error);
     }
   }
 

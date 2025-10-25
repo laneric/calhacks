@@ -70,7 +70,7 @@ export default function LocationDisplay({ onLocationChange, onRecenter, showRece
     <div className={`flex items-center gap-2 transition-all duration-400 ease-out ${showRecenterButton ? 'gap-2' : 'gap-0'}`}>
       <div className="flex items-center gap-1 px-6 py-3 rounded-full border border-white/20 backdrop-blur-sm bg-neutral-900/30">
         {getLocationIcon()}
-        <p className="text-white text-md font-medium">{getDisplayText()}</p>
+        <p className="text-white text-md font-medium whitespace-nowrap">{getDisplayText()}</p>
       </div>
       
       {/* Re-center button - with fade in and slide from left transition */}

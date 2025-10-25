@@ -136,6 +136,11 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
       if (isMapClick) {
         setActiveRestaurantId(null);
         onRestaurantDeselect?.();
+        
+        // If deck is active, close it on map tap
+        if (isDeckActive) {
+          onDeckClose?.();
+        }
       }
     };
     
