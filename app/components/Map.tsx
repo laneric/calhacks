@@ -9,9 +9,14 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 interface MapProps {
   userLocation?: { latitude: number; longitude: number; accuracy?: number } | null;
   onMapLoad?: (map: mapboxgl.Map) => void;
+  selectedRestaurant?: Restaurant | null;
+  onRestaurantSelect?: (restaurant: Restaurant | null) => void;
+  onRestaurantDeselect?: () => void;
+  isDeckActive?: boolean;
+  onDeckClose?: () => void;
 }
 
-export default function Map({ userLocation, onMapLoad }: MapProps) {
+export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRestaurantSelect, onRestaurantDeselect, isDeckActive, onDeckClose }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -93,6 +98,7 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
       
       if (isMapClick) {
         setActiveRestaurantId(null);
+        onRestaurantDeselect?.();
       }
     };
     
@@ -106,7 +112,10 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     container.addEventListener('touchstart', handleMapClick);
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveRestaurantId(null);
+      if (e.key === 'Escape') {
+        setActiveRestaurantId(null);
+        onRestaurantDeselect?.();
+      }
     };
     window.addEventListener('keydown', onKey);
 
@@ -137,24 +146,32 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     };
   }, [userLocation, isMapReady]);
 
-  // Fetch restaurants near user
+  // Show only selected restaurant and zoom to it
   useEffect(() => {
-    const fetchRestaurants = async (lat: number, lng: number, radius = 5000) => {
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
-        const res = await fetch(`${backendUrl}/restaurants?lat=${lat}&lng=${lng}&radius=${radius}`);
-        if (!res.ok) throw new Error(`Failed to fetch restaurants: ${res.status}`);
-        const data: RestaurantResponse = await res.json();
-        setRestaurants(data.restaurants);
-      } catch (err) {
-        console.error('Error fetching restaurants:', err);
+    if (selectedRestaurant) {
+      setRestaurants([selectedRestaurant]);
+      
+      // Only auto-select if deck is not active (deck navigation should not show popup)
+      if (!isDeckActive) {
+        setActiveRestaurantId(selectedRestaurant.id);
       }
-    };
-
-    if (userLocation && isMapReady) {
-      fetchRestaurants(userLocation.latitude, userLocation.longitude);
+      
+      // Zoom to the selected restaurant
+      if (mapRef.current && isMapReady) {
+        const map = mapRef.current;
+        const center: [number, number] = [selectedRestaurant.location.lng, selectedRestaurant.location.lat];
+        map.flyTo({ 
+          center, 
+          zoom: 16, 
+          essential: true,
+          duration: 1500
+        });
+      }
+    } else {
+      setRestaurants([]);
+      setActiveRestaurantId(null);
     }
-  }, [userLocation, isMapReady]);
+  }, [selectedRestaurant, isMapReady, isDeckActive]);
 
   // Clear active id if the restaurant list no longer contains it
   useEffect(() => {
@@ -177,9 +194,15 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
             map={mapRef.current!}
             restaurant={r}
             isActive={activeRestaurantId === r.id}
+            isDeckActive={isDeckActive}
             onClick={() => {
-              // Toggle: if already active, set to null; otherwise set to this restaurant
-              setActiveRestaurantId(activeRestaurantId === r.id ? null : r.id);
+              if (isDeckActive) {
+                // If deck is active, do nothing - markers are purely visual
+                return;
+              } else {
+                // Normal behavior: toggle popup
+                setActiveRestaurantId(activeRestaurantId === r.id ? null : r.id);
+              }
             }}
           />
         ))}

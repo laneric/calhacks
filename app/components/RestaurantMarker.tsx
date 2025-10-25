@@ -5,21 +5,25 @@ import mapboxgl from 'mapbox-gl';
 import { createPortal } from 'react-dom';
 import { BuildingStorefrontIcon, StarIcon, MapPinIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import type { Restaurant } from '../libs/types';
+import { formatDistance } from '../libs/distance';
 
 type Props = {
   map: mapboxgl.Map;
   restaurant: Restaurant;
   isActive?: boolean;
   onClick?: (r: Restaurant) => void;
+  isDeckActive?: boolean;
 };
 
 /** Small badge used as the marker element */
-function MarkerBadge({ active }: { active?: boolean }) {
+function MarkerBadge({ active, isDeckActive }: { active?: boolean; isDeckActive?: boolean }) {
   return (
     <div
       className={[
         'inline-flex h-10 w-10 items-center justify-center rounded-full border bg-orange-500 text-white shadow-lg',
-        'cursor-pointer transition-transform duration-200 hover:scale-110',
+        isDeckActive 
+          ? 'cursor-default opacity-80' 
+          : 'cursor-pointer transition-transform duration-200 hover:scale-110',
         active ? 'ring-4 ring-white/60' : 'border-white'
       ].join(' ')}
       role="button"
@@ -34,20 +38,19 @@ function MarkerBadge({ active }: { active?: boolean }) {
 function PopupCard({ r, onClose }: { r: Restaurant; onClose?: () => void }) {
   const cuisines = useMemo(() => r.cuisine?.join(', ') || 'Restaurant', [r.cuisine]);
   const distance = useMemo(
-    () => (r.distanceMeters ? `${Math.round(r.distanceMeters)}m away` : null),
+    () => (r.distanceMeters ? `${formatDistance(r.distanceMeters)} away` : null),
     [r.distanceMeters]
   );
 
   return (
     <div 
-      className="w-64 max-w-xs rounded-xl bg-neutral-900/30 backdrop-blur-sm border border-white/20 p-4 text-white"
+      className="w-64 max-w-xs rounded-xl bg-neutral-900/80 backdrop-blur-sm border border-white/20 p-4 text-white"
       onClick={(e) => e.stopPropagation()} // Prevent popup from closing when clicking inside
     >
       <div className="mb-1 flex items-start justify-between gap-2">
         <h3 className="line-clamp-2 text-base font-semibold text-white">{r.name}</h3>
         <div className="flex items-center gap-2">
-          <MapPinIcon className="h-4 w-4 shrink-0 text-gray-400" />
-          {onClose && (
+          {/* {onClose && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -58,7 +61,7 @@ function PopupCard({ r, onClose }: { r: Restaurant; onClose?: () => void }) {
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
-          )}
+          )} */}
         </div>
       </div>
       <div className="mb-2 flex items-center gap-1 text-sm">
@@ -68,12 +71,15 @@ function PopupCard({ r, onClose }: { r: Restaurant; onClose?: () => void }) {
         <span className="italic text-gray-300">{cuisines}</span>
       </div>
       {distance && <div className="text-xs text-gray-300">{distance}</div>}
-      {r.address && <div className="mt-2 text-xs leading-relaxed text-gray-300">{r.address}</div>}
+      <div className="flex items-center gap-1">
+      <MapPinIcon className="h-4 w-4 shrink-0 text-gray-400" />
+      {r.address && <div className="text-xs leading-relaxed text-gray-300">{r.address}</div>}
+      </div>
     </div>
   );
 }
 
-export default function RestaurantMarker({ map, restaurant, isActive, onClick }: Props) {
+export default function RestaurantMarker({ map, restaurant, isActive, onClick, isDeckActive }: Props) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
@@ -98,7 +104,7 @@ export default function RestaurantMarker({ map, restaurant, isActive, onClick }:
     popupRef.current = new mapboxgl.Popup({ 
       closeOnClick: false, 
       closeButton: false,  // Disable Mapbox's built-in close button
-      offset: 16, 
+      offset: [0, -80], // Position above marker, centered between topbar and deck
       maxWidth: '280px',
       className: 'custom-popup'  // Add custom class for styling
     });
@@ -144,7 +150,7 @@ export default function RestaurantMarker({ map, restaurant, isActive, onClick }:
 
   return (
     <>
-      {createPortal(<MarkerBadge active={isActive} />, markerElRef.current)}
+      {createPortal(<MarkerBadge active={isActive} isDeckActive={isDeckActive} />, markerElRef.current)}
       {createPortal(
         <PopupCard 
           r={restaurant} 
