@@ -34,7 +34,7 @@ export default function LocationDisplay({ onLocationChange, className = "" }: Lo
     };
 
     loadLocation();
-  }, [onLocationChange]); // Include onLocationChange in dependencies
+  }, []); // Run only once on mount
 
   const getDisplayText = () => {
     if (isLoading) {

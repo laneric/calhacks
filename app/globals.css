@@ -34,3 +34,15 @@ body, #root, .app, #map-container {
   width: 100%;
   position: relative;
 }
+
+/* Override Mapbox popup styling */
+.custom-popup .mapboxgl-popup-content {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.custom-popup .mapboxgl-popup-tip {
+  display: none !important;
+}

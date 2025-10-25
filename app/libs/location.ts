@@ -10,6 +10,8 @@ export interface LocationData {
 
 export class LocationService {
   private static instance: LocationService;
+  private cachedLocation: LocationData | null = null;
+  private cacheExpiry: number = 0;
   
   public static getInstance(): LocationService {
     if (!LocationService.instance) {
@@ -22,8 +24,19 @@ export class LocationService {
    * Get user's current location with fallback to Palace of Fine Arts
    */
   async getCurrentLocation(): Promise<LocationData> {
+    // Check if we have a valid cached location
+    if (this.cachedLocation && Date.now() < this.cacheExpiry) {
+      console.log('Using cached location');
+      return this.cachedLocation;
+    }
+
     try {
-      return await this.getGeolocation();
+      const location = await this.getGeolocation();
+      // Cache the location for 10 minutes
+      this.cachedLocation = location;
+      this.cacheExpiry = Date.now() + 600000; // 10 minutes
+      console.log('Location cached for 10 minutes');
+      return location;
     } catch (error) {
       console.warn('Geolocation failed, using Palace of Fine Arts as default');
       return this.getDefaultLocation();
@@ -42,8 +55,8 @@ export class LocationService {
 
       const options: PositionOptions = {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes
+        timeout: 15000, // Increased timeout for better accuracy
+        maximumAge: 600000 // 10 minutes - longer cache to reduce variations
       };
 
       navigator.geolocation.getCurrentPosition(

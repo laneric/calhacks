@@ -64,7 +64,9 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
     if (!mapRef.current || !isMapReady) return;
     const m = mapRef.current;
 
-    const handleMapClick = () => setActiveRestaurantId(null);
+    const handleMapClick = () => {
+      setActiveRestaurantId(null);
+    };
     m.on('click', handleMapClick);
 
     const onKey = (e: KeyboardEvent) => {
@@ -134,7 +136,10 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
             map={mapRef.current!}
             restaurant={r}
             isActive={activeRestaurantId === r.id}
-            onClick={() => setActiveRestaurantId(r.id)}
+            onClick={() => {
+              // Toggle: if already active, set to null; otherwise set to this restaurant
+              setActiveRestaurantId(activeRestaurantId === r.id ? null : r.id);
+            }}
           />
         ))}
     </div>
