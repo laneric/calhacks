@@ -1,8 +1,9 @@
 "use client"
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { LocationData } from './libs/location'
 import { Restaurant } from './libs/types'
 import { SparklesIcon } from '@heroicons/react/24/solid'
+import { FaDice } from "react-icons/fa";
 
 // components
 import Map from './components/Map'
@@ -14,6 +15,8 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [restaurantDeck, setRestaurantDeck] = useState<Restaurant[]>([]);
+  const [isAwayFromUser, setIsAwayFromUser] = useState(false);
+  const mapRef = useRef<{ recenterToUser: () => void } | null>(null);
 
   const handlePromptSubmit = (prompt: string) => {
     console.log('User prompt:', prompt)
@@ -52,11 +55,29 @@ export default function Home() {
     setUserLocation(location);
   }, []);
 
+  const handleRecenter = useCallback(() => {
+    console.log('handleRecenter called, mapRef.current:', mapRef.current);
+    if (mapRef.current) {
+      console.log('Calling recenterToUser');
+      mapRef.current.recenterToUser();
+    } else {
+      console.log('mapRef.current is null');
+    }
+  }, []);
+
+  const handleViewChange = useCallback((awayFromUser: boolean) => {
+    setIsAwayFromUser(awayFromUser);
+  }, []);
+
   return (
     <div className="relative w-full h-screen">
       {/* topbar */}
-      <div className="fixed left-1/2 top-10 -translate-x-1/2 px-6 py-4 h-12 flex items-center gap-1 rounded-full border border-white/20 backdrop-blur-sm bg-neutral-900/30 whitespace-nowrap z-10">
-        <LocationDisplay onLocationChange={handleLocationChange} />
+      <div className="fixed left-1/2 top-10 -translate-x-1/2 h-12 flex items-center justify-center z-10 transition-all duration-400 ease-out">
+        <LocationDisplay 
+          onLocationChange={handleLocationChange} 
+          onRecenter={handleRecenter}
+          showRecenterButton={isAwayFromUser}
+        />
       </div>
       
       {/* map view */}
@@ -70,6 +91,8 @@ export default function Home() {
           setRestaurantDeck([]);
           setSelectedRestaurant(null); // Clear selected restaurant to hide marker
         }}
+        mapRef={mapRef}
+        onViewChange={handleViewChange}
       />
       
       {/* restaurant card deck */}
@@ -93,7 +116,7 @@ export default function Home() {
           className="p-4 rounded-full border-2 hover:cursor-pointer border-neutral-700 bg-white transition-colors shadow-lg"
           title="Random restaurant suggestion"
         >
-          <SparklesIcon className="size-7 text-black" />
+          <FaDice className="size-7 text-black" />
         </button>
         
         {/* prompt input */}

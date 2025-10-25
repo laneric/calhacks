@@ -14,15 +14,52 @@ interface MapProps {
   onRestaurantDeselect?: () => void;
   isDeckActive?: boolean;
   onDeckClose?: () => void;
+  mapRef?: React.RefObject<{ recenterToUser: () => void } | null>;
+  onViewChange?: (isAwayFromUser: boolean) => void;
 }
 
-export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRestaurantSelect, onRestaurantDeselect, isDeckActive, onDeckClose }: MapProps) {
+export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRestaurantSelect, onRestaurantDeselect, isDeckActive, onDeckClose, mapRef: externalMapRef, onViewChange }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   const [isMapReady, setIsMapReady] = useState(false);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+
+  // Helper function to calculate distance between two points in meters
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distance in meters
+  };
+
+  // Expose recenterToUser method through external ref
+  useEffect(() => {
+    if (externalMapRef && mapRef.current) {
+      externalMapRef.current = {
+        recenterToUser: () => {
+          if (mapRef.current && userLocation && isMapReady) {
+            const center: [number, number] = [userLocation.longitude, userLocation.latitude];
+            mapRef.current.flyTo({ 
+              center, 
+              zoom: 15.5, 
+              essential: true,
+              duration: 1500
+            });
+          }
+        }
+      };
+    }
+  }, [externalMapRef, userLocation, isMapReady]);
 
   // Init map once
   useEffect(() => {
@@ -178,6 +215,39 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
     if (!activeRestaurantId) return;
     if (!restaurants.some((r) => r.id === activeRestaurantId)) setActiveRestaurantId(null);
   }, [restaurants, activeRestaurantId]);
+
+  // Track map position changes to determine if user has moved away from their location
+  useEffect(() => {
+    if (!mapRef.current || !isMapReady || !userLocation || !onViewChange) return;
+    
+    const map = mapRef.current;
+    const THRESHOLD_DISTANCE = 100; // 100 meters threshold
+    
+    const checkDistanceFromUser = () => {
+      const center = map.getCenter();
+      const distance = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        center.lat,
+        center.lng
+      );
+      
+      const isAwayFromUser = distance > THRESHOLD_DISTANCE;
+      onViewChange(isAwayFromUser);
+    };
+    
+    // Check initial distance
+    checkDistanceFromUser();
+    
+    // Listen for map move events
+    map.on('moveend', checkDistanceFromUser);
+    map.on('zoomend', checkDistanceFromUser);
+    
+    return () => {
+      map.off('moveend', checkDistanceFromUser);
+      map.off('zoomend', checkDistanceFromUser);
+    };
+  }, [isMapReady, userLocation, onViewChange]);
 
 
   return (
