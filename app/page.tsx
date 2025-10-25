@@ -16,6 +16,7 @@ export default function Home() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [restaurantDeck, setRestaurantDeck] = useState<Restaurant[]>([]);
   const [isAwayFromUser, setIsAwayFromUser] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const mapRef = useRef<{ recenterToUser: () => void } | null>(null);
 
   const handlePromptSubmit = (prompt: string) => {
@@ -29,6 +30,13 @@ export default function Home() {
       return;
     }
 
+    // Hide deck if it's currently visible
+    if (restaurantDeck.length > 0) {
+      setRestaurantDeck([]);
+      setSelectedRestaurant(null);
+    }
+
+    setIsLoading(true);
     try {
       // Fetch only 10 random restaurants from the Flask API
       const flaskUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5001';
@@ -51,6 +59,8 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error fetching random restaurants:', error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -96,6 +106,7 @@ export default function Home() {
         }}
         mapRef={mapRef}
         onViewChange={handleViewChange}
+        isLoading={isLoading}
       />
       
       {/* restaurant card deck */}

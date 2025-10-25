@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Restaurant, RestaurantResponse } from '../libs/types';
 import RestaurantMarker from './RestaurantMarker';
+import LoadingOverlay from './LoadingOverlay';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface MapProps {
@@ -16,9 +17,10 @@ interface MapProps {
   onDeckClose?: () => void;
   mapRef?: React.RefObject<{ recenterToUser: () => void } | null>;
   onViewChange?: (isAwayFromUser: boolean) => void;
+  isLoading?: boolean;
 }
 
-export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRestaurantSelect, onRestaurantDeselect, isDeckActive, onDeckClose, mapRef: externalMapRef, onViewChange }: MapProps) {
+export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRestaurantSelect, onRestaurantDeselect, isDeckActive, onDeckClose, mapRef: externalMapRef, onViewChange, isLoading }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -216,7 +218,7 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
 
   // Center on user and show a simple user-location marker
   useEffect(() => {
-    if (!mapRef.current || !isMapReady || !userLocation) return;
+    if (!mapRef.current || !isMapReady || !userLocation || isLoading) return;
     const map = mapRef.current;
     const center: [number, number] = [userLocation.longitude, userLocation.latitude];
 
@@ -229,7 +231,7 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
     return () => {
       userMarker.remove();
     };
-  }, [userLocation, isMapReady]);
+  }, [userLocation, isMapReady, isLoading]);
 
   // Show only selected restaurant and zoom to it
   useEffect(() => {
@@ -301,11 +303,12 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
   return (
     <div 
       ref={mapContainer} 
-      className="map-container"
+      className={`map-container relative ${isLoading ? 'dither' : ''}`}
       style={{ width: '100%', height: '100vh' }}
     >
       {isMapReady &&
         mapRef.current &&
+        !isLoading &&
         restaurants.map((r) => (
           <RestaurantMarker
             key={r.id}
@@ -324,6 +327,7 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
             }}
           />
         ))}
+      <LoadingOverlay isVisible={isLoading || false} />
     </div>
   );
 }
