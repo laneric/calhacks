@@ -141,7 +141,8 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
   useEffect(() => {
     const fetchRestaurants = async (lat: number, lng: number, radius = 5000) => {
       try {
-        const res = await fetch(`/api/restaurants?lat=${lat}&lng=${lng}&radius=${radius}&limit=20`);
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
+        const res = await fetch(`${backendUrl}/restaurants?lat=${lat}&lng=${lng}&radius=${radius}`);
         if (!res.ok) throw new Error(`Failed to fetch restaurants: ${res.status}`);
         const data: RestaurantResponse = await res.json();
         setRestaurants(data.restaurants);
