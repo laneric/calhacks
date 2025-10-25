@@ -41,8 +41,14 @@ body, #root, .app, #map-container {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+  pointer-events: none !important; /* Allow clicks to pass through to map */
 }
 
 .custom-popup .mapboxgl-popup-tip {
   display: none !important;
+}
+
+/* Re-enable pointer events for the actual popup content */
+.custom-popup .mapboxgl-popup-content > * {
+  pointer-events: auto !important;
 }

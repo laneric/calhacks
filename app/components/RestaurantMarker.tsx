@@ -106,12 +106,17 @@ export default function RestaurantMarker({ map, restaurant, isActive, onClick }:
     // Notify parent on click; parent will toggle isActive
     const handleClick = (e: Event) => {
       e.stopPropagation();
+      e.preventDefault();
       onClick?.(restaurant);
     };
     markerElRef.current.addEventListener('click', handleClick);
+    markerElRef.current.addEventListener('mousedown', handleClick);
+    markerElRef.current.addEventListener('touchstart', handleClick);
 
     return () => {
       markerElRef.current?.removeEventListener('click', handleClick);
+      markerElRef.current?.removeEventListener('mousedown', handleClick);
+      markerElRef.current?.removeEventListener('touchstart', handleClick);
       popupRef.current?.remove();
       markerRef.current?.remove();
       popupRef.current = null;

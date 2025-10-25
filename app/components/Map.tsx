@@ -61,13 +61,49 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
 
   // Close popup on map click and on Escape
   useEffect(() => {
-    if (!mapRef.current || !isMapReady) return;
+    if (!mapRef.current || !isMapReady || !mapContainer.current) return;
     const m = mapRef.current;
+    const container = mapContainer.current;
+    
+    // Additional safety check - ensure map is fully initialized
+    if (!m.getCanvas || !m.getCanvasContainer) {
+      return;
+    }
 
-    const handleMapClick = () => {
-      setActiveRestaurantId(null);
+    const handleMapClick = (e: any) => {
+      // Check if clicking on map canvas or container
+      const canvas = m.getCanvas();
+      const canvasContainer = m.getCanvasContainer();
+      
+      // Safety check - ensure canvas and container exist
+      if (!canvas || !canvasContainer) {
+        return;
+      }
+      
+      // Handle different target types
+      let isMapClick = false;
+      
+      if (e.target === canvas || e.target === canvasContainer) {
+        isMapClick = true;
+      } else if (e.target && typeof e.target.nodeType === 'number' && canvasContainer.contains(e.target)) {
+        isMapClick = true;
+      } else if (e.target && e.target.className && e.target.className.includes('mapboxgl-canvas')) {
+        isMapClick = true;
+      }
+      
+      if (isMapClick) {
+        setActiveRestaurantId(null);
+      }
     };
+    
+    // Listen to multiple event types to handle both mouse and touch
     m.on('click', handleMapClick);
+    m.on('touchstart', handleMapClick);
+    m.on('mousedown', handleMapClick);
+    
+    // Also listen to the container for additional coverage
+    container.addEventListener('click', handleMapClick);
+    container.addEventListener('touchstart', handleMapClick);
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setActiveRestaurantId(null);
@@ -76,6 +112,10 @@ export default function Map({ userLocation, onMapLoad }: MapProps) {
 
     return () => {
       m.off('click', handleMapClick);
+      m.off('touchstart', handleMapClick);
+      m.off('mousedown', handleMapClick);
+      container.removeEventListener('click', handleMapClick);
+      container.removeEventListener('touchstart', handleMapClick);
       window.removeEventListener('keydown', onKey);
     };
   }, [isMapReady]);
