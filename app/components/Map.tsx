@@ -308,7 +308,7 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
       {/* Dark overlay when loading */}
       <div 
         className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ease-out z-10 ${
-          isLoading ? 'opacity-100' : 'opacity-0'
+          isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       />
       {isMapReady &&
