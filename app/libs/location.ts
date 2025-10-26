@@ -113,6 +113,11 @@ export class LocationService {
       return location.city;
     }
     
+    // If we have coordinates but no city/region, show coordinates
+    if (location.latitude && location.longitude) {
+      return `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+    }
+    
     return 'Current Location';
   }
 
@@ -136,10 +141,11 @@ export class LocationService {
       }
 
       const data = await response.json();
+      console.log(data)
       
       return {
-        city: data.city,
-        region: data.principalSubdivisionCode || data.principalSubdivision
+        city: data.locality,
+        region: data.principalSubdivision || data.principalSubdivisionCode
       };
     } catch (error) {
       console.warn('Reverse geocoding failed:', error);

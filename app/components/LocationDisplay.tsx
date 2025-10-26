@@ -5,18 +5,31 @@ import { TbLocationFilled } from "react-icons/tb";
 import { LocationService, LocationData } from '../libs/location';
 
 interface LocationDisplayProps {
+  location?: LocationData | null;
   onLocationChange?: (location: LocationData) => void;
   onRecenter?: () => void;
   showRecenterButton?: boolean;
   className?: string;
 }
 
-export default function LocationDisplay({ onLocationChange, onRecenter, showRecenterButton = false, className = "" }: LocationDisplayProps) {
-  const [location, setLocation] = useState<LocationData | null>(null);
+export default function LocationDisplay({ location: propLocation, onLocationChange, onRecenter, showRecenterButton = false, className = "" }: LocationDisplayProps) {
+  const [internalLocation, setInternalLocation] = useState<LocationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use prop location if provided, otherwise get it from LocationService
+  const location = propLocation || internalLocation;
+
   useEffect(() => {
+    // If location is provided as prop, use it directly
+    if (propLocation) {
+      setInternalLocation(propLocation);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    // Otherwise, get location from LocationService
     const loadLocation = async () => {
       try {
         setIsLoading(true);
@@ -25,7 +38,7 @@ export default function LocationDisplay({ onLocationChange, onRecenter, showRece
         const locationService = LocationService.getInstance();
         const currentLocation = await locationService.getCurrentLocation();
         
-        setLocation(currentLocation);
+        setInternalLocation(currentLocation);
         onLocationChange?.(currentLocation);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to get location';
@@ -37,7 +50,7 @@ export default function LocationDisplay({ onLocationChange, onRecenter, showRece
     };
 
     loadLocation();
-  }, []); // Run only once on mount
+  }, [propLocation, onLocationChange]); // Re-run if prop location changes
 
   const getDisplayText = () => {
     if (isLoading) {

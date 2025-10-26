@@ -89,6 +89,7 @@ export default function Home() {
       {/* topbar */}
       <div className="fixed left-1/2 top-10 -translate-x-1/2 h-12 flex items-center justify-center z-10 transition-all duration-400 ease-out">
         <LocationDisplay
+          location={userLocation}
           onLocationChange={handleLocationChange}
           onRecenter={handleRecenter}
           showRecenterButton={isAwayFromUser}
