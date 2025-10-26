@@ -26,6 +26,7 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
   const [isMapReady, setIsMapReady] = useState(false);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+  const [isDeckViewMode, setIsDeckViewMode] = useState(false);
 
   // Helper function to calculate distance between two points in meters
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -43,18 +44,91 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
     return R * c; // Distance in meters
   };
 
+  // Simple function to control building extrusion visibility
+  const setBuildingExtrusionVisibility = (visible: boolean) => {
+    if (!mapRef.current || !isMapReady) return;
+    
+    const map = mapRef.current;
+    const layerId = 'add-3d-buildings';
+    
+    if (map.getLayer(layerId)) {
+      map.setPaintProperty(layerId, 'fill-extrusion-opacity', visible ? 0.6 : 0);
+    }
+  };
+
+  // Enhanced camera animation for restaurant viewing
+  const flyToRestaurant = (restaurant: Restaurant, isDeckView: boolean = false) => {
+    if (!mapRef.current || !isMapReady) return;
+    
+    const map = mapRef.current;
+    const center: [number, number] = [restaurant.location.lng, restaurant.location.lat];
+    
+    if (isDeckView) {
+      // Enhanced view for deck mode: closer to ground level with pitch
+      map.flyTo({
+        center,
+        zoom: 17,
+        pitch: 60,
+        bearing: -17.6,
+        duration: 2000,
+        essential: true
+      });
+      
+      // Only enable building extrusions if not already in deck view mode
+      if (!isDeckViewMode) {
+        setBuildingExtrusionVisibility(true);
+        setIsDeckViewMode(true);
+      }
+    } else {
+      // Normal view for single restaurant selection
+      map.flyTo({
+        center,
+        zoom: 16,
+        duration: 1500,
+        essential: true
+      });
+    }
+  };
+
   // Expose recenterToUser method through external ref
   useEffect(() => {
-    if (externalMapRef && mapRef.current) {
+    if (externalMapRef) {
       externalMapRef.current = {
         recenterToUser: () => {
-          if (mapRef.current && userLocation && isMapReady) {
-            const center: [number, number] = [userLocation.longitude, userLocation.latitude];
-            mapRef.current.flyTo({ 
+          console.log('recenterToUser called, conditions:', {
+            mapRefExists: !!mapRef.current,
+            userLocationExists: !!userLocation,
+            isMapReady,
+            userLocation
+          });
+          
+          // Get fresh values at call time instead of closure values
+          const currentMap = mapRef.current;
+          const currentUserLocation = userLocation;
+          const currentIsMapReady = isMapReady;
+          
+          if (currentMap && currentUserLocation) {
+            const center: [number, number] = [currentUserLocation.longitude, currentUserLocation.latitude];
+            console.log('Flying to center:', center);
+            
+            // Reset camera to user location with normal view (no pitch, no building extrusions)
+            currentMap.flyTo({ 
               center, 
               zoom: 15.5, 
+              pitch: 0,
+              bearing: 0,
               essential: true,
               duration: 1500
+            });
+            
+            // Hide building extrusions and reset deck view mode
+            setBuildingExtrusionVisibility(false);
+            setIsDeckViewMode(false);
+          } else {
+            console.log('recenterToUser conditions not met:', {
+              mapExists: !!currentMap,
+              userLocationExists: !!currentUserLocation,
+              mapReady: currentIsMapReady
             });
           }
         }
@@ -89,9 +163,47 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
     });
     mapRef.current = map;
 
-    map.on('load', () => {
+    map.on('style.load', () => {
       setIsMapReady(true);
       onMapLoad?.(map);
+      
+      // Add 3D buildings layer with proper expressions
+      const layers = map.getStyle().layers;
+      const labelLayerId = layers.find(
+        (layer) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
+      )?.id;
+
+      if (labelLayerId) {
+        map.addLayer(
+          {
+            id: 'add-3d-buildings',
+            source: 'composite',
+            'source-layer': 'building',
+            filter: ['==', 'extrude', 'true'],
+            type: 'fill-extrusion',
+            minzoom: 15,
+            paint: {
+              'fill-extrusion-color': '#aaa',
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                15, 0,
+                15.05, ['get', 'height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                15, 0,
+                15.05, ['get', 'min_height']
+              ],
+              'fill-extrusion-opacity': 0  // Start with invisible buildings
+            }
+          },
+          labelLayerId
+        );
+      }
     });
 
     map.on('error', (e) => console.error('Mapbox error:', e));
@@ -242,17 +354,8 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
         setActiveRestaurantId(selectedRestaurant.id);
       }
       
-      // Zoom to the selected restaurant
-      if (mapRef.current && isMapReady) {
-        const map = mapRef.current;
-        const center: [number, number] = [selectedRestaurant.location.lng, selectedRestaurant.location.lat];
-        map.flyTo({ 
-          center, 
-          zoom: 16, 
-          essential: true,
-          duration: 1500
-        });
-      }
+      // Use enhanced camera animation
+      flyToRestaurant(selectedRestaurant, isDeckActive);
     } else {
       setRestaurants([]);
       setActiveRestaurantId(null);
@@ -264,6 +367,27 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
     if (!activeRestaurantId) return;
     if (!restaurants.some((r) => r.id === activeRestaurantId)) setActiveRestaurantId(null);
   }, [restaurants, activeRestaurantId]);
+
+  // Handle deck closing - reset camera and hide building extrusions
+  useEffect(() => {
+    if (!isDeckActive && isDeckViewMode && mapRef.current && isMapReady && userLocation) {
+      const map = mapRef.current;
+      
+      // Reset camera to user location with normal view
+      map.flyTo({
+        center: [userLocation.longitude, userLocation.latitude],
+        pitch: 0,
+        zoom: 15.5,
+        bearing: 0,
+        duration: 1500,
+        essential: true
+      });
+      
+      // Hide building extrusions
+      setBuildingExtrusionVisibility(false);
+      setIsDeckViewMode(false);
+    }
+  }, [isDeckActive, isDeckViewMode, isMapReady, userLocation]);
 
   // Track map position changes to determine if user has moved away from their location
   useEffect(() => {
@@ -297,7 +421,6 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
       map.off('zoomend', checkDistanceFromUser);
     };
   }, [isMapReady, userLocation, onViewChange]);
-
 
   return (
     <div 
