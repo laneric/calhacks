@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from "react";
 import { LocationData } from './libs/location'
 import { Restaurant } from './libs/types'
-import { SparklesIcon } from '@heroicons/react/24/solid'
+import { SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/solid'
 import { FaDice } from "react-icons/fa";
 
 // components
@@ -10,6 +10,8 @@ import Map from './components/Map'
 import PromptInput from './components/PromptInput'
 import LocationDisplay from './components/LocationDisplay'
 import RestaurantCardDeck from './components/RestaurantCardDeck'
+import DitherField from './components/DitherField'
+import LoadingOverlay from './components/LoadingOverlay';
 
 export default function Home() {
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
@@ -42,14 +44,14 @@ export default function Home() {
       const flaskUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5001';
       const response = await fetch(`${flaskUrl}/restaurants?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=5000&max_num=10`);
       if (!response.ok) throw new Error(`Failed to fetch restaurants: ${response.status}`);
-      
+
       const data = await response.json();
       const restaurants = data.restaurants;
-      
+
       if (restaurants.length > 0) {
         // Shuffle the restaurants array to ensure randomness
         const shuffledRestaurants = [...restaurants].sort(() => Math.random() - 0.5);
-        
+
         // Set the deck of 10 random restaurants
         setRestaurantDeck(shuffledRestaurants);
         // Select the first restaurant to show on map
@@ -86,16 +88,16 @@ export default function Home() {
     <div className="relative w-full h-screen">
       {/* topbar */}
       <div className="fixed left-1/2 top-10 -translate-x-1/2 h-12 flex items-center justify-center z-10 transition-all duration-400 ease-out">
-        <LocationDisplay 
-          onLocationChange={handleLocationChange} 
+        <LocationDisplay
+          onLocationChange={handleLocationChange}
           onRecenter={handleRecenter}
           showRecenterButton={isAwayFromUser}
         />
       </div>
-      
+
       {/* map view */}
-      <Map 
-        userLocation={userLocation} 
+      <Map
+        userLocation={userLocation}
         selectedRestaurant={selectedRestaurant}
         onRestaurantSelect={setSelectedRestaurant}
         onRestaurantDeselect={() => setSelectedRestaurant(null)}
@@ -108,10 +110,10 @@ export default function Home() {
         onViewChange={handleViewChange}
         isLoading={isLoading}
       />
-      
+
       {/* restaurant card deck */}
       {restaurantDeck.length > 0 && (
-        <RestaurantCardDeck 
+        <RestaurantCardDeck
           restaurants={restaurantDeck}
           isVisible={restaurantDeck.length > 0}
           onClose={() => {
@@ -127,15 +129,28 @@ export default function Home() {
         {/* dice roll button */}
         <button
           onClick={handleDiceRoll}
-          className="p-4 rounded-full border-2 hover:cursor-pointer border-neutral-700 bg-white transition-colors shadow-lg"
+          className={`p-4 rounded-full border-2 border-neutral-700 transition-colors shadow-lg ${isLoading
+            ? 'bg-neutral-600 hover:cursor-not-allowed'
+            : 'bg-white hover:bg-neutral-400 hover:cursor-pointer'
+            }`}
           title="Random restaurant suggestion"
+          disabled={isLoading}
         >
-          <FaDice className="size-7 text-black" />
+          {isLoading ? (
+            <ArrowPathIcon className="size-7 text-white animate-spin" />
+          ) : (
+            <FaDice className="size-7 text-black" />
+          )}
         </button>
-        
+
         {/* prompt input */}
         <PromptInput onSend={handlePromptSubmit} />
       </div>
+      <DitherField
+        isVisible={isLoading}                 // when this becomes false, wave-out runs
+        offWaveDirection="lr"                 // 'lr' | 'rl' | 'tb' | 'bt' | 'diag' | 'radial'
+      />
+      <LoadingOverlay isVisible={isLoading} />
     </div>
   );
 }

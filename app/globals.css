@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "dither-plugin";
 
 :root {
   --background: #ffffff;

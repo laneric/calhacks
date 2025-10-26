@@ -4,7 +4,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Restaurant, RestaurantResponse } from '../libs/types';
 import RestaurantMarker from './RestaurantMarker';
-import LoadingOverlay from './LoadingOverlay';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface MapProps {
@@ -303,9 +302,15 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
   return (
     <div 
       ref={mapContainer} 
-      className={`map-container relative ${isLoading ? 'dither' : ''}`}
+      className="map-container relative"
       style={{ width: '100%', height: '100vh' }}
     >
+      {/* Dark overlay when loading */}
+      <div 
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ease-out z-10 ${
+          isLoading ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
       {isMapReady &&
         mapRef.current &&
         !isLoading &&
@@ -327,7 +332,6 @@ export default function Map({ userLocation, onMapLoad, selectedRestaurant, onRes
             }}
           />
         ))}
-      <LoadingOverlay isVisible={isLoading || false} />
     </div>
   );
 }
