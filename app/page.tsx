@@ -40,10 +40,12 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      // Fetch only 10 random restaurants from the Flask API
-      const flaskUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5001';
-      const response = await fetch(`${flaskUrl}/restaurants?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=5000&max_num=10`);
-      if (!response.ok) throw new Error(`Failed to fetch restaurants: ${response.status}`);
+      // Fetch restaurants from Flask API
+      const response = await fetch(`http://localhost:5001/restaurants?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=5000&max_num=10`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch restaurants: ${response.status}`);
+      }
 
       const data = await response.json();
       const restaurants = data.restaurants;

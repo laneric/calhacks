@@ -215,7 +215,7 @@ export default function RestaurantCardDeck({
         <button
           onClick={goToPrevious}
           disabled={currentIndex === 0 || isTransitioning}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 z-40 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 z-40 w-10 h-10 bg-neutral-700/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeftIcon className="size-5 text-white mr-[0.5]" />
         </button>
@@ -223,7 +223,7 @@ export default function RestaurantCardDeck({
         <button
           onClick={goToNext}
           disabled={currentIndex === restaurants.length - 1 || isTransitioning}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 z-40 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 z-40 w-10 h-10 bg-neutral-700/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronRightIcon className="size-5 text-white ml-[0.5]" />
         </button>
