@@ -60,7 +60,7 @@ def query_overpass_api(latitude: float, longitude: float, radius_meters: float) 
     return response.json().get('elements', [])
 
 
-def find_restaurants(latitude: float, longitude: float, distance: float = 10) -> Dict:
+def find_restaurants(latitude: float, longitude: float, distance: float = 10, extract_info: bool = False) -> Dict:
     """
     Find restaurants within a specified radius of a given location.
 
@@ -68,6 +68,7 @@ def find_restaurants(latitude: float, longitude: float, distance: float = 10) ->
         latitude: User's latitude
         longitude: User's longitude
         distance: Search radius in miles (default: 10)
+        extract_info: Whether to extract detailed info using extraction agent (default: False)
 
     Returns:
         Dict containing:
@@ -75,6 +76,7 @@ def find_restaurants(latitude: float, longitude: float, distance: float = 10) ->
             - 'count': number of restaurants found
             - 'restaurants': list of restaurant dicts with name, address, distance, etc.
             - 'error': error message (if status is 'error')
+            - 'extracted_info': list of RestaurantInfo dicts (if extract_info=True)
     """
     # Validate inputs
     if not validate_coordinates(latitude, longitude):
@@ -130,7 +132,8 @@ def find_restaurants(latitude: float, longitude: float, distance: float = 10) ->
         # Sort by distance
         restaurants.sort(key=lambda x: x['distance_miles'])
 
-        return {
+        # prepare response
+        response = {
             'status': 'success',
             'count': len(restaurants),
             'restaurants': restaurants,
@@ -140,6 +143,32 @@ def find_restaurants(latitude: float, longitude: float, distance: float = 10) ->
                 'radius_miles': distance
             }
         }
+
+        # optionally extract detailed information
+        if extract_info and restaurants:
+            try:
+                from agents.extraction.extraction import batch_extract_restaurant_info
+
+                # prepare restaurants for extraction
+                restaurants_to_extract = [
+                    {
+                        'name': r['name'],
+                        'geo_data': r
+                    }
+                    for r in restaurants
+                ]
+
+                # extract information
+                extracted_results = batch_extract_restaurant_info(restaurants_to_extract)
+
+                # add extracted info to response
+                response['extracted_info'] = [info.to_dict() for info in extracted_results]
+
+            except Exception as e:
+                # if extraction fails, continue without it
+                response['extraction_error'] = f'extraction failed: {str(e)}'
+
+        return response
 
     except requests.RequestException as e:
         return {
